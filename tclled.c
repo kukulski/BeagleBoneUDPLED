@@ -68,6 +68,10 @@ void write_bgra(tcl_color *p, uint32_t px) {
 	write_color(p,(px>>8 & 255),(px>>16 & 255),(px>>24));
 }
 
+void write_bgra_gamma(tcl_color *p, uint32_t px) {
+
+	write_gamma_color(p,(px>>8 & 255),(px>>16 & 255),(px>>24));
+}
 
 void write_color(tcl_color *p, uint8_t red, uint8_t green, uint8_t blue) {
   uint8_t flag;

@@ -80,6 +80,8 @@ int spi_init(int filedes);
  */
 void write_color(tcl_color *p, uint8_t red, uint8_t green, uint8_t blue);
 
+void write_bgra(tcl_color *p, uint32_t px);
+void write_bgra_gamma(tcl_color *p, uint32_t px);
 
 void write_rgba(tcl_color *p, uint32_t color);
 //void write_bgr32(tcl_color *p, uint32_t color);

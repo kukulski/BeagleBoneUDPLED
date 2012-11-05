@@ -45,17 +45,19 @@ int main(int argc, const char * argv[])
       exit(1);
   }
 
+	set_gamma(3.0, 3.0, 3.0);
 
-    UDPListener udp(43211);
+
+    UDPListener udp(54321);
     unsigned int udpBuf[100];
     
     
     while(1) {
         size_t amount = udp.listen(udpBuf,sizeof(udpBuf));
-    
-    	prepPixels(udpBuf, tclBuf);
-		send_buffer(fd,&tclBuf);
-    
+    	if(amount == sizeof(udpBuf)) {
+ 	     	prepPixels(udpBuf, tclBuf);
+	    	send_buffer(fd,&tclBuf);
+    	}
     }
     
     return 0;
@@ -77,7 +79,7 @@ void prepPixels( unsigned int *raw, const tcl_buffer &tcl) {
 
 void writePixel(unsigned int *raw, tcl_color *pixels, int row, int col) {
 	unsigned int px = getPixel(raw,row,col);
-	write_bgra(getTCLPixel(pixels,row,col),px);
+	write_bgra_gamma(getTCLPixel(pixels,row,col),px);
 }
 tcl_color *getTCLPixel(tcl_color *pixels, int row, int col) {
 	int phase = row & 1;
