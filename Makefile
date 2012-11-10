@@ -27,8 +27,10 @@ udpfast: udpfast.o UDPSender.o tclled.o
 
 udpfast.o: udpfast.cpp UDPSender.h
 
-main.o: main.cpp UDPSender.h
+main.o: main.cpp UDPSender.h TCLFast.hxx TCLFast.o
 
 UDPSender.o: UDPSender.cpp UDPSender.h
 
 tclled.o: tclled.c tclled.h
+	
+TCLFast.o: TCLFast.cpp TCLFast.hxx

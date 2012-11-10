@@ -12,10 +12,78 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <math.h>
+
+
+class DitherChannel {
+public:
+    unsigned char out;
+
+    void set(float val) {
+        target = val;
+        err = 0;
+        update();
+    }
+    
+    unsigned char update() {
+        out = (target + err);
+        err = target - out;
+        return out;
+    }
+ private:
+    float target;
+    unsigned char intVal;
+    float err;
+};
+
+extern float sGammaR[256], sGammaG[256], sGammaB[256];
+
+//    static void setGamma(double gamma_red, double gamma_green, double gamma_blue) {
+//  int i;
+//  
+//  for(i=0;i<256;i++) {
+//    sGammaR[i] = pow(i/255.0,gamma_red)*255.0;
+//    sGammaG[i] = pow(i/255.0,gamma_green)*255.0;
+//    sGammaB[i] = pow(i/255.0,gamma_blue)*255.0;
+//  };
+
+class DitherPixel {
+    public:
+        
+        
+    static void initGamma(double gamma_red, double gamma_green, double gamma_blue);  
+    
+    void setTCL(tcl_color *tcl) { 
+        out = tcl;
+    }
+    
+    void set(unsigned char r, unsigned char g, unsigned char b ) { 
+        rDither.set(sGammaR[r]);
+        gDither.set(sGammaG[g]);
+        bDither.set(sGammaB[b]);
+    }
+    
+    void update() {
+        ::write_color(out, rDither.update(), gDither.update(), bDither.update());
+    }
+
+private:
+    
+    // in theory, we could do better and faster by using fixed point math
+// if we get CPU bound, we'll make the change
+    
+    tcl_color *out;
+    DitherChannel rDither, gDither, bDither;
+};
+
+
 
 class TCLFast {
     
 public:
+    
+      
+  
     
     TCLFast(int wd, int ht) {
         width = wd;
@@ -115,5 +183,10 @@ void initTCL()  {
  
 }
 }; // class TCLFast
+
+
+/// next: make a new class  that uses pixelDither
+
+
 #endif	/* TCLFAST_HXX */
 
