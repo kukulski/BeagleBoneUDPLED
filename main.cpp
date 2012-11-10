@@ -13,50 +13,34 @@
 #include <stdio.h>
 #include "UDPSender.h"
 #include <stdlib.h>
-
+#include <signal.h>
+#include "TCLFast.hxx"
 
 void prepPixels(unsigned int *raw, const tcl_buffer &tcl); 
+void initTclBuf(const tcl_buffer &tcl);
+void interruptHandler(int param);
+
 int main(int argc, const char * argv[])
 {
-
- int fd;              /* SPI device file descriptor */
-  const int leds = 100; /* 50 LEDs in the strand */
-  tcl_buffer tclBuf;
- 
-  /* Open SPI device */
-  fd = open("/dev/spidev2.0",O_WRONLY);
-  if(fd<0) {
-      /* Open failed */
-      fprintf(stderr, "Error: SPI device open failed.\n");
-      exit(1);
-  }
-
-  /* Initialize SPI bus for TCL pixels */
-  if(spi_init(fd)<0) {
-      /* Initialization failed */
-      fprintf(stderr, "Unable to initialize SPI bus.\n");
-      exit(1);
-  }
-
-  /* Allocate memory for the pixel buffer and initialize it */
-  if(tcl_init(&tclBuf,leds)<0) {
-      /* Memory allocation failed */
-      fprintf(stderr, "Insufficient memory for pixel buffer.\n");
-      exit(1);
-  }
-
-	set_gamma(3.0, 3.0, 3.0);
-
-
-    UDPListener udp(54321);
-    unsigned int udpBuf[100];
+    signal(SIGINT, interruptHandler); 
     
+   fprintf(stderr,"%s running, listening on port 54321\n",argv[0]);
+ 
+   TCLFast tcl(10,10);
+   
+    UDPListener udp(54321);
+    unsigned int *udpBuf = tcl.getRawBuffer();
+    size_t bufSize = tcl.getBufferSize();
+   
+    
+    tcl.testPattern();
+    tcl.send();
     
     while(1) {
-        size_t amount = udp.listen(udpBuf,sizeof(udpBuf));
-    	if(amount == sizeof(udpBuf)) {
- 	     	prepPixels(udpBuf, tclBuf);
-	    	send_buffer(fd,&tclBuf);
+        size_t amount = udp.listen(udpBuf,bufSize);
+    	if(amount == bufSize) {
+ 	    tcl.prepPixels();
+            tcl.send();
     	}
     }
     
@@ -64,30 +48,10 @@ int main(int argc, const char * argv[])
 }
 
 
-void writePixel(unsigned int *raw, tcl_color *pixels, int row, int col);
-unsigned int getPixel(unsigned int *raw, int row, int col);
-tcl_color *getTCLPixel(tcl_color *pixels, int row, int col);
 
-void prepPixels( unsigned int *raw, const tcl_buffer &tcl) {
-
-	tcl_color *pixels = tcl.pixels;
-	
-	for(int i = 0; i < 10; i++)
-		for(int j = 0; j < 10; j++)
-			writePixel(raw, pixels,i,j);
-}
-
-void writePixel(unsigned int *raw, tcl_color *pixels, int row, int col) {
-	unsigned int px = getPixel(raw,row,col);
-	write_bgra_gamma(getTCLPixel(pixels,row,col),px);
-}
-tcl_color *getTCLPixel(tcl_color *pixels, int row, int col) {
-	int phase = row & 1;
-	int unwoundCol = phase?col : 9-col;
-	return &pixels[10*row+unwoundCol];
-}
-
-
-unsigned int getPixel( unsigned int *raw, int row, int col) {
-	return raw[10*row+col];
+void interruptHandler(int param) {
+    
+      fprintf(stderr,"quitting\n");
+      exit(1);
+    
 }

@@ -1,5 +1,5 @@
 CFLAGS = -O3
-CC = gcc
+CC = g++
 BUNDLE = Makefile main.cpp UDPSender.cpp UDPSender.h tclled.h tclled.c
 VERSION = 1.1
 ARCHIVE = udplights
@@ -20,7 +20,12 @@ clean:
 udplights: main.o UDPSender.o tclled.o
 	$(CC) $(CFLAGS) $(LIBS) -o $@ $^
 
+udpfast: udpfast.o UDPSender.o tclled.o
+	$(CC) $(CFLAGS) $(LIBS) -lpthread -o $@ $^
 
+
+
+udpfast.o: udpfast.cpp UDPSender.h
 
 main.o: main.cpp UDPSender.h
 
