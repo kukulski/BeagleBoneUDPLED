@@ -14,6 +14,12 @@
 #include <unistd.h>
 #include <math.h>
 #include <algorithm>
+#include <list>
+
+#include <iostream>
+
+using namespace std;
+
 
 class Buffer {
 public:
@@ -63,38 +69,81 @@ private:
     uint32_t *buf;   
 };
 
+typedef struct {
+  int x, y;  
+} XY;
 
 class Zone {
  
 public: 
-    Zone(const int x, const int y, const int wd, const int ht, const int offset, const int phase):xOrigin(x),yOrigin(y),wd(wd),ht(ht),offset(offset),phase(phase) {
+//    Zone(const int x, const int y, const int wd, const int ht, const int offset, const int phase):xOrigin(x),yOrigin(y),wd(wd),ht(ht),offset(offset),phase(phase) {
+//    }
+    
+       Zone(XY &origin, XY &size, const int offset, const int flipX, const int flipY):
+        origin(origin),
+          size(size),
+          offset(offset),
+          flipX(flipX),
+           flipY(flipY) {
     }
 
     int endIndex() {
-        return wd*ht + offset;
-    }
-    unsigned int *pixelForIndex(int ii) {
-        
-        int i = ii- offset;
-        int suby = i/wd;
-        
-        int linePhase = (suby + phase) & 1;
-        int subx = i%wd;
-        subx = linePhase ? (wd - 1 - subx) : subx;
-
-        
-        // this is way off, but my brain is done working for the day
-        // we're getting 
-        
-        
-         fprintf(stderr,"idx: %d (%d)--> %d,%d\n",ii,i,xOrigin+subx,yOrigin+suby );
-        
-        return rawBuffer->pixelAt(xOrigin + subx, yOrigin+suby);
+        return size.x*size.y + offset;
     }
     
-    int xOrigin,yOrigin,wd,ht,offset,phase;
+    virtual void dump() {
+        fprintf(stderr,"zone: @%d,%d, %dx%d offset:%d, phase%d,%d\n",origin.x, origin.y, size.x, size.y, offset, flipX, flipY);
+    }
+    
+    virtual unsigned int *pixelForIndex(int ii) {
+        
+        int i = ii- offset;
+        int suby = i/size.x;
+        
+        int linePhase = (suby + flipX) & 1;
+        int subx = i%size.x;
+        subx = linePhase ? (size.x - 1 - subx) : subx;
+        suby = flipY ? (size.y -1 - suby) : suby;
+        
+         fprintf(stderr,"idx: %d (%d)--> %d,%d\n",ii,i,origin.x+subx,origin.y+suby );
+        
+        return rawBuffer->pixelAt(origin.x + subx, origin.y+suby);
+    }
+protected:
+    XY origin, size;
+    int flipX, flipY;
+public:
+    int offset;
     Buffer *rawBuffer;
 };
+
+class VZone:  public Zone {
+public:
+    
+    VZone(XY &origin, XY &size, const int offset, const int flipX, const int flipY):
+    Zone(origin,size,offset,flipX, flipY) {
+    }
+    
+    virtual unsigned int *pixelForIndex(int ii) {
+        
+        int i = ii- offset;
+        int subx = i/size.y;
+        
+        int linePhase = (subx + flipX) & 1;
+        int suby = i%size.y;
+        suby = linePhase ? (size.y - 1 - suby) : suby;
+        subx = flipY ? (size.x -1 - subx) : subx;
+     
+        
+        return rawBuffer->pixelAt(origin.x + subx, origin.y+suby);
+    }
+        virtual void dump() {
+         fprintf(stderr,"vertical zone: @%d,%d, %dx%d offset:%d, phase%d,%d\n",origin.x, origin.y, size.x, size.y, offset, flipX, flipY);
+    }
+
+};
+
+
 
 class BufferMap {
     
@@ -111,27 +160,24 @@ public:
     }
     
     
-    void add(Zone &zone) {
-        zone.rawBuffer = rawBuffer;
-        int endIdx = std::min(count,zone.endIndex());
+    void add(Zone *zone) {
         
-        for(int i = zone.offset; i < endIdx; i++) 
-            pixelMap[i] = zone.pixelForIndex(i);
+        zone->dump();
+        
+        zone->rawBuffer = rawBuffer;
+        int endIdx = std::min(count,zone->endIndex());
+        
+        for(int i = zone->offset; i < endIdx; i++) 
+            pixelMap[i] = zone->pixelForIndex(i);
  
     }
     
     void writeOut(tcl_color *pixels) {
         for(int i = 0; i < count; i++) {
-        //     fprintf(stderr,"***");
-
             uint32_t *from = pixelMap[i];
             int offset = from - rawBuffer->getBuffer();
             ::write_bgra_gamma(pixels+i,*from);
-   //         fprintf(stderr,"%d: write: %d of %d\n",i, offset,rawBuffer->getBufferSize());
         }
-      
-   //  fprintf(stderr,"wrote\n");
-
     }
     
 private:
@@ -152,11 +198,7 @@ public:
         {
        set_gamma(3.0, 3.0, 3.0);
        initTCL(pixelCount);
-       
-//       for(int i=0; i < pixelCount; i++)
-//           ::write_bgra_gamma(tcl.pixels+i,0xbada5500);
 
-                  
        rawBuffer = new Buffer(wd,ht);
        pixelMap = new BufferMap(pixelCount, rawBuffer, tcl.pixels);
     }
@@ -168,7 +210,15 @@ public:
  Buffer *getBuffer() { return rawBuffer;}
     
   
-    void add(Zone zone) {
+ 
+ void addZones(std::list<Zone*> zones) {
+     std::list<Zone*>::iterator first = zones.begin(), last = zones.end();
+      for ( ; first!=last; ++first ) 
+          add(*first);
+ }
+ 
+    void add(Zone *zone) {
+        
         pixelMap->add(zone);
     }
     
@@ -184,19 +234,6 @@ public:
     
     void send() {
        pixelMap->writeOut(tcl.pixels);
- //      fprintf(stderr,"wrote out, now to send buffer\n");
- 
-       
-    //  fprintf(stderr,"spi at %d -- buffer.leds = %d\n",spi,tcl.leds);
-   // fprintf(stderr,"spi at %d -- buffer.size = %d\n",spi,tcl.size);
- 
-      
-//      for(int i = 0; i< tcl.leds; i++) {
-//          tcl_color *px = &tcl.pixels[i];
-//     //     fprintf(stderr,"%03d, %3d, %3d %3d",px->flag, px->blue, px->green, px->red);
-//      }
-      
-      
        ::send_buffer(spi,&tcl);
     }
     

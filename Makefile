@@ -1,4 +1,5 @@
 # CFLAGS = -O3
+CFLAGS = -std=c++0x
 CC = g++
 BUNDLE = Makefile main.cpp UDPSender.cpp UDPSender.h tclled.h tclled.c
 VERSION = 1.1
