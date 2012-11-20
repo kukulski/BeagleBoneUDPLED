@@ -1,11 +1,11 @@
-CFLAGS = -O3
+# CFLAGS = -O3
 CC = g++
 BUNDLE = Makefile main.cpp UDPSender.cpp UDPSender.h tclled.h tclled.c
 VERSION = 1.1
 ARCHIVE = udplights
 LIBS = -lm
 
-all: udplights
+all: udplights tallwide
 
 archive: $(BUNDLE)
 	mkdir $(ARCHIVE)-$(VERSION)
@@ -23,14 +23,20 @@ udplights: main.o UDPSender.o tclled.o
 udpfast: udpfast.o UDPSender.o tclled.o
 	$(CC) $(CFLAGS) $(LIBS) -lpthread -o $@ $^
 
+tallwide: tallwide.o UDPSender.o tclled.o 
+	$(CC) $(CFLAGS) $(LIBS)  -o $@ $^
 
+tallwide.o: tallwide.cpp UDPSender.h TCLZoned.hxx 
+
+tclled.o: tclled.c tclled.h
 
 udpfast.o: udpfast.cpp UDPSender.h
 
-main.o: main.cpp UDPSender.h TCLFast.hxx TCLFast.o
-
 UDPSender.o: UDPSender.cpp UDPSender.h
 
-tclled.o: tclled.c tclled.h
+main.o: main.cpp UDPSender.h TCLFast.hxx 
+
+
+
 	
-TCLFast.o: TCLFast.cpp TCLFast.hxx
+	

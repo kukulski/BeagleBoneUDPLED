@@ -113,6 +113,9 @@ public:
                 prepPixel(i,j);
     }
     
+    
+    
+    
     void testPattern() {
   	tcl_color *pixels = tcl.pixels;
 
@@ -123,8 +126,8 @@ public:
         int quad = i /25;
         
         tcl_color *px = getTCLPixel(row, col);
-
-        ::write_gamma_color(px, row*255/4,col*255/4,quad*255/3);
+        if(px)
+            ::write_gamma_color(px, row*255/4,col*255/4,quad*255/3);
     }
 }
     

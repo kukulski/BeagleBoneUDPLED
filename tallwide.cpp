@@ -14,7 +14,7 @@
 #include "UDPSender.h"
 #include <stdlib.h>
 #include <signal.h>
-#include "TCLFast.hxx"
+#include "TCLZoned.hxx"
 
 void prepPixels(unsigned int *raw, const tcl_buffer &tcl); 
 void initTclBuf(const tcl_buffer &tcl);
@@ -26,21 +26,23 @@ int main(int argc, const char * argv[])
     
    fprintf(stderr,"%s running, listening on port 54321\n",argv[0]);
  
-   TCLFast tcl(10,10);
+    TCLZoned tcl(22,12,200);
+    tcl.add(Zone(7,0,10,7,0,1));
+    tcl.add(Zone(0,7,22,5,100,1));
+ 
    
     UDPListener udp(54321);
-    unsigned int *udpBuf = tcl.getRawBuffer();
-    size_t bufSize = tcl.getBufferSize();
+    uint32_t *udpBuf = tcl.getBuffer()->getBuffer();
+    size_t bufSize = tcl.getBuffer()->getBufferSize();
    
-    
     tcl.testPattern();
+    
     tcl.send();
     
     while(1) {
         size_t amount = udp.listen(udpBuf,bufSize);
     	if(amount == bufSize) {
- 	    tcl.prepPixels();
-            tcl.send();
+           tcl.send();
     	}
     }
     

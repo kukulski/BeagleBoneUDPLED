@@ -1,0 +1,244 @@
+/* 
+ * File:   TCLFast.hxx
+ * Author: kukulski
+ *
+ * Created on November 9, 2012, 2:58 PM
+ */
+
+#ifndef TCLFAST_HXX
+#define	TCLFAST_HXX
+
+#include "tclled.h"
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <math.h>
+#include <algorithm>
+
+class Buffer {
+public:
+    Buffer(int wd, int ht):
+        wd(wd),
+        ht(ht){
+        size = wd*ht;
+        buf = new uint32_t [size];
+        
+               fprintf(stderr,"%dx%d of %d\n",wd,ht,size);
+
+        
+         for(int i = 0 ; i < size; i++)      
+             buf[i] = 0xbada5500;
+               
+    }
+    
+    ~Buffer() {
+        delete buf;
+    }
+    
+    uint32_t *pixelAt(int x, int y) {
+        return buf + offset(x,y);
+    }
+    
+    int offset(int x, int y) {
+        return x + (y * wd);
+        
+    }
+    
+    
+    uint32_t *getBuffer() { return pixelAt(0,0);}
+    size_t getBufferSize() { return wd*ht*sizeof(uint32_t);}
+    
+    
+    void writePixel(int x, int y, unsigned char r, unsigned char g, unsigned char b) {
+       
+        uint32_t *out = pixelAt(x,y);
+        
+   //     fprintf(stderr,"%d of %d\n",offset(x,y),size);
+        buf[offset(x,y)] = (r << 8) | (g << 16) | (b << 24);
+    }
+    
+private:
+    int size;
+    int wd, ht;
+    uint32_t *buf;   
+};
+
+
+class Zone {
+ 
+public: 
+    Zone(const int x, const int y, const int wd, const int ht, const int offset, const int phase):xOrigin(x),yOrigin(y),wd(wd),ht(ht),offset(offset),phase(phase) {
+    }
+
+    int endIndex() {
+        return wd*ht + offset;
+    }
+    unsigned int *pixelForIndex(int ii) {
+        
+        int i = ii- offset;
+        int suby = i/wd;
+        
+        int linePhase = (suby + phase) & 1;
+        int subx = i%wd;
+        subx = linePhase ? (wd - 1 - subx) : subx;
+
+        
+        // this is way off, but my brain is done working for the day
+        // we're getting 
+        
+        
+         fprintf(stderr,"idx: %d (%d)--> %d,%d\n",ii,i,xOrigin+subx,yOrigin+suby );
+        
+        return rawBuffer->pixelAt(xOrigin + subx, yOrigin+suby);
+    }
+    
+    int xOrigin,yOrigin,wd,ht,offset,phase;
+    Buffer *rawBuffer;
+};
+
+class BufferMap {
+    
+public:
+    BufferMap(int count, Buffer *rawBuffer, tcl_color *pixels):
+    count(count),
+    rawBuffer(rawBuffer),
+    pixels(pixels) {
+        pixelMap = new uint32_t*[count];
+        
+        for(int i=0; i < count; i++) {
+            pixelMap[i] = rawBuffer->getBuffer();
+        }
+    }
+    
+    
+    void add(Zone &zone) {
+        zone.rawBuffer = rawBuffer;
+        int endIdx = std::min(count,zone.endIndex());
+        
+        for(int i = zone.offset; i < endIdx; i++) 
+            pixelMap[i] = zone.pixelForIndex(i);
+ 
+    }
+    
+    void writeOut(tcl_color *pixels) {
+        for(int i = 0; i < count; i++) {
+        //     fprintf(stderr,"***");
+
+            uint32_t *from = pixelMap[i];
+            int offset = from - rawBuffer->getBuffer();
+            ::write_bgra_gamma(pixels+i,*from);
+   //         fprintf(stderr,"%d: write: %d of %d\n",i, offset,rawBuffer->getBufferSize());
+        }
+      
+   //  fprintf(stderr,"wrote\n");
+
+    }
+    
+private:
+     int count;
+        uint32_t **pixelMap;
+        Buffer *rawBuffer;
+        tcl_color *pixels;
+};
+
+
+class TCLZoned {
+    
+public:
+    
+    TCLZoned(int wd, int ht, int pixelCount):
+        width(wd),
+        height(ht)
+        {
+       set_gamma(3.0, 3.0, 3.0);
+       initTCL(pixelCount);
+       
+//       for(int i=0; i < pixelCount; i++)
+//           ::write_bgra_gamma(tcl.pixels+i,0xbada5500);
+
+                  
+       rawBuffer = new Buffer(wd,ht);
+       pixelMap = new BufferMap(pixelCount, rawBuffer, tcl.pixels);
+    }
+    
+    ~TCLZoned() {
+        delete rawBuffer;
+    }
+    
+ Buffer *getBuffer() { return rawBuffer;}
+    
+  
+    void add(Zone zone) {
+        pixelMap->add(zone);
+    }
+    
+    
+    void testPattern() {
+    for(int i = 0; i < width*height; i++) {
+        int row = i/width;
+        int col = i%width;
+        int quad = i /(width*height/4);
+        rawBuffer->writePixel(col,row, row*255/height,col*255/width,0);
+    }
+}
+    
+    void send() {
+       pixelMap->writeOut(tcl.pixels);
+ //      fprintf(stderr,"wrote out, now to send buffer\n");
+ 
+       
+    //  fprintf(stderr,"spi at %d -- buffer.leds = %d\n",spi,tcl.leds);
+   // fprintf(stderr,"spi at %d -- buffer.size = %d\n",spi,tcl.size);
+ 
+      
+//      for(int i = 0; i< tcl.leds; i++) {
+//          tcl_color *px = &tcl.pixels[i];
+//     //     fprintf(stderr,"%03d, %3d, %3d %3d",px->flag, px->blue, px->green, px->red);
+//      }
+      
+      
+       ::send_buffer(spi,&tcl);
+    }
+    
+private:
+    tcl_buffer tcl;
+    BufferMap *pixelMap;
+    Buffer *rawBuffer;
+    int width, height;
+    int spi;
+    int leds;
+    
+
+void initTCL(int leds)  {
+    
+  /* Open SPI device */
+  spi = open("/dev/spidev2.0",O_WRONLY);
+  if(spi<0) {
+      /* Open failed */
+      fprintf(stderr, "Error: SPI device open failed.\n");
+      exit(1);
+  }
+
+  /* Initialize SPI bus for TCL pixels */
+  if(spi_init(spi)<0) {
+      /* Initialization failed */
+      fprintf(stderr, "Unable to initialize SPI bus.\n");
+      exit(1);
+  }
+
+  /* Allocate memory for the pixel buffer and initialize it */
+  if(tcl_init(&tcl,leds)<0) {
+      /* Memory allocation failed */
+      fprintf(stderr, "Insufficient memory for pixel buffer.\n");
+      exit(1);
+  }
+ 
+}
+}; // class TCLFast
+
+
+/// next: make a new class  that uses pixelDither
+
+
+#endif	/* TCLFAST_HXX */
+
