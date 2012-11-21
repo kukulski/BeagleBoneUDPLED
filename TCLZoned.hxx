@@ -29,9 +29,7 @@ public:
         size = wd*ht;
         buf = new uint32_t [size];
         
-               fprintf(stderr,"%dx%d of %d\n",wd,ht,size);
-
-        
+         
          for(int i = 0 ; i < size; i++)      
              buf[i] = 0xbada5500;
                
@@ -59,8 +57,7 @@ public:
        
         uint32_t *out = pixelAt(x,y);
         
-   //     fprintf(stderr,"%d of %d\n",offset(x,y),size);
-        buf[offset(x,y)] = (r << 8) | (g << 16) | (b << 24);
+         buf[offset(x,y)] = (r << 8) | (g << 16) | (b << 24);
     }
     
 private:
@@ -105,7 +102,6 @@ public:
         subx = linePhase ? (size.x - 1 - subx) : subx;
         suby = flipY ? (size.y -1 - suby) : suby;
         
-         fprintf(stderr,"idx: %d (%d)--> %d,%d\n",ii,i,origin.x+subx,origin.y+suby );
         
         return rawBuffer->pixelAt(origin.x + subx, origin.y+suby);
     }
@@ -162,7 +158,7 @@ public:
     
     void add(Zone *zone) {
         
-        zone->dump();
+      //  zone->dump();
         
         zone->rawBuffer = rawBuffer;
         int endIdx = std::min(count,zone->endIndex());
@@ -194,7 +190,8 @@ public:
     
     TCLZoned(int wd, int ht, int pixelCount):
         width(wd),
-        height(ht)
+        height(ht),
+        spi(-1)
         {
        set_gamma(3.0, 3.0, 3.0);
        initTCL(pixelCount);
@@ -233,6 +230,13 @@ public:
 }
     
     void send() {
+        
+      if(spi < 0)
+          openSPI();
+      
+      if(spi < 0)
+          return;
+        
        pixelMap->writeOut(tcl.pixels);
        ::send_buffer(spi,&tcl);
     }
@@ -246,22 +250,30 @@ private:
     int leds;
     
 
-void initTCL(int leds)  {
-    
-  /* Open SPI device */
+   
+void openSPI() {
+     /* Open SPI device */
   spi = open("/dev/spidev2.0",O_WRONLY);
   if(spi<0) {
       /* Open failed */
       fprintf(stderr, "Error: SPI device open failed.\n");
-      exit(1);
+      return;
   }
 
   /* Initialize SPI bus for TCL pixels */
   if(spi_init(spi)<0) {
       /* Initialization failed */
       fprintf(stderr, "Unable to initialize SPI bus.\n");
-      exit(1);
-  }
+      close(spi);
+      spi = -1;
+      return;
+  } 
+    
+}    
+    
+void initTCL(int leds)  {
+    
+
 
   /* Allocate memory for the pixel buffer and initialize it */
   if(tcl_init(&tcl,leds)<0) {

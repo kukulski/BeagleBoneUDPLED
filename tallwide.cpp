@@ -81,12 +81,7 @@ private:
         xloc = where + 1;
         yloc = where + 2;
         
-        
-         cerr << keyloc[0] << endl;
-        cerr << xloc[0] << endl;
-        cerr << yloc[0] << endl;
-        
-        
+
         XY rval{getInt(*xloc),getInt(*yloc)};
 
         args.erase(keyloc,yloc);
@@ -108,7 +103,7 @@ private:
         where = find(findStart,findEnd,key);
 
         if(where == findEnd) return 0;
-        cerr << where[0] << endl;
+     //   cerr << where[0] << endl;
        //  args.erase(where);
         return 1;   
     }
@@ -142,13 +137,8 @@ private:
         int flipX = eatFlag("flipX");
         int flipY = eatFlag("flipY");
     
-        
-          cerr << (vertical ? "vert" : "horizontal") << endl;
       
         args.erase(findStart,findEnd);
-        
-        cerr << "called erase" << endl;
-        
         
         Zone *rval = vertical ? new VZone(orig, size,offset, flipX, flipY) :
             new Zone(orig,size,offset, flipX, flipY);
@@ -163,12 +153,6 @@ int main(int argc, const char * argv[])
     Options opts(argc, argv);
 //    signal(SIGINT, interruptHandler); 
     
-    
-    
-    
-    
-   fprintf(stderr,"%s running, listening on port 54321\n",argv[0]);
- 
    
     TCLZoned tcl(opts.buffersize.x, opts.buffersize.y, opts.leds);
    tcl.addZones(opts.zones);
