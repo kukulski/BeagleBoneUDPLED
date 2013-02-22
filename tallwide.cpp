@@ -53,7 +53,13 @@ public:
       std::list<Zone*>::iterator first = zones.begin(), last = zones.end();
       for ( ; first!=last; ++first ) 
           delete (*first);
+    }
+
+    void dump() {
         
+        cout << "port:" << port << endl 
+                <<"leds:" << leds << endl
+                <<"wd:" << buffersize.x << ", ht:" << buffersize.y << endl;
     }
 public:
     XY buffersize;
@@ -151,35 +157,37 @@ int main(int argc, const char * argv[])
 {
     
     Options opts(argc, argv);
-//    signal(SIGINT, interruptHandler); 
     
-   
     TCLZoned tcl(opts.buffersize.x, opts.buffersize.y, opts.leds);
    tcl.addZones(opts.zones);
     UDPListener udp(opts.port);
 
+    
+    opts.dump();
+    
     uint32_t *udpBuf = tcl.getBuffer()->getBuffer();
     size_t bufSize = tcl.getBuffer()->getBufferSize();
    
+    
+    
     tcl.testPattern();
     
     tcl.send();
+    
+    int sent = 0;
     
     while(1) {
         size_t amount = udp.listen(udpBuf,bufSize);
     	if(amount == bufSize) {
            tcl.send();
-    	}
+           if(sent == 0) {
+               cout << "received and sent a packet!";
+               sent++;
+           }
+    	} else {
+            cout << "bad buffer size:" << amount << " expected: " << bufSize << endl;
+        }
     }
     
     return 0;
-}
-
-
-
-void interruptHandler(int param) {
-    
-      fprintf(stderr,"quitting\n");
-      exit(1);
-    
 }
