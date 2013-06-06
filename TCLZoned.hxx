@@ -60,6 +60,7 @@ public:
          buf[offset(x,y)] = (r << 8) | (g << 16) | (b << 24);
     }
     
+
 private:
     int size;
     int wd, ht;
@@ -176,8 +177,34 @@ public:
         }
     }
     
+    
+    void mapOutBadPixel(uint32_t *px) {
+        int idx = findIndex(px);
+        if(idx < 0) return;
+        if(idx >= count) return;
+        mapOut(idx);
+    }
+    
+    
+    
 private:
-     int count;
+    void mapOut(int idx) {
+        for(int i = idx; i < count-1; i++) {
+            pixelMap[i] = pixelMap[i+1];
+        }
+    }
+    
+    int findIndex(uint32_t *px) {
+        
+        for(int i = 0; i < count; i++) {
+            uint32_t *from = pixelMap[i];
+            if(from == px) return i;
+        }
+        return -1;
+    }
+    
+
+    int count;
         uint32_t **pixelMap;
         Buffer *rawBuffer;
         tcl_color *pixels;
@@ -203,6 +230,10 @@ public:
     ~TCLZoned() {
         delete rawBuffer;
     }
+  
+    void mapOutBadPixel(XY px) {
+        pixelMap->mapOutBadPixel(rawBuffer->pixelAt(px.x,px.y));
+    }
     
  Buffer *getBuffer() { return rawBuffer;}
     
@@ -213,6 +244,14 @@ public:
       for ( ; first!=last; ++first ) 
           add(*first);
  }
+    
+    void addOmissions(std::list<XY> omissions) {
+        std::list<XY>::iterator first = omissions.begin(), last = omissions.end();
+        for ( ; first!=last; ++first ) {
+            cout << "omitting " << first->x << first->y << endl;
+            mapOutBadPixel(*first);
+        }
+    }
  
     void add(Zone *zone) {
         
@@ -250,7 +289,10 @@ private:
     int leds;
     
 
-   
+  
+    
+    
+    
 void openSPI() {
      /* Open SPI device */
   spi = open("/dev/spidev2.0",O_WRONLY);

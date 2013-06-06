@@ -1,0 +1,9 @@
+[Unit]
+Description=start udp lights 
+After=syslog.target network.target
+[Service]
+Type=simple
+ExecStart=/home/root/udplights/startLocal.bash
+
+[Install]
+WantedBy=multi-user.target

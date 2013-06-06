@@ -87,3 +87,11 @@ size_t UDPListener::listen(void *data, size_t maxcount) {
     return recvfrom(sock,data,maxcount,0,(struct sockaddr *)&from,&fromlen);
 }
 
+
+void UDPListener::setNonblocking() {
+    int flags;
+	flags = fcntl(sock,F_GETFL,0);
+	assert(flags != -1);
+	fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+}
+

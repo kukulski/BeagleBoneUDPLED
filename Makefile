@@ -18,16 +18,21 @@ clean:
 	$(RM) *.o
 	$(RM) $(ARCHIVE)-$(VERSION).tar.gz
 
-udplights: main.o UDPSender.o tclled.o
+udplights: main.o UDPSender.o tclled.o 
 	$(CC) $(CFLAGS) $(LIBS) -o $@ $^
 
 udpfast: udpfast.o UDPSender.o tclled.o
 	$(CC) $(CFLAGS) $(LIBS) -lpthread -o $@ $^
 
-tallwide: tallwide.o UDPSender.o tclled.o 
+tallwide: tallwide.o UDPSender.o tclled.o  
 	$(CC) $(CFLAGS) $(LIBS)  -o $@ $^
 
-tallwide.o: tallwide.cpp UDPSender.h TCLZoned.hxx 
+dithered: dithered.o UDPSender.o tclled.o  
+	$(CC) $(CFLAGS) $(LIBS)  -o $@ $^
+
+dithered.o: dithered.cpp UDPSender.h TCLZoned.hxx  Options.hxx 
+
+tallwide.o: tallwide.cpp UDPSender.h TCLZoned.hxx  Options.hxx 
 
 tclled.o: tclled.c tclled.h
 

@@ -26,9 +26,11 @@ private:
 class UDPListener {
 public:
     UDPListener(int port);
-  //  virtual ~UDPListener();
+    void setNonblocking();
+    //  virtual ~UDPListener();
     size_t listen(void *data, size_t maxcount);
 private:
+    
     int sock;
     struct sockaddr_in server;
     struct sockaddr_in from;

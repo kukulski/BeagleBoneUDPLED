@@ -34,33 +34,25 @@ int main(int argc, const char * argv[])
     
     TCLZoned tcl(opts.buffersize.x, opts.buffersize.y, opts.leds);
    tcl.addZones(opts.zones);
-    tcl.addOmissions(opts.omissions);
     UDPListener udp(opts.port);
 
-    
-    
-    
+    udp.setNonblocking();
     
     opts.dump();
     
     uint32_t *udpBuf = tcl.getBuffer()->getBuffer();
     size_t bufSize = tcl.getBuffer()->getBufferSize();
    
-   // tcl.mapOutBadPixel(4,20);
+    
     
     tcl.testPattern();
     tcl.send();
     
-    int sent = 0;
     
     while(1) {
         size_t amount = udp.listen(udpBuf,bufSize);
     	if(amount == bufSize) {
            tcl.send();
-           if(sent == 0) {
-               cout << "received and sent a packet!";
-               sent++;
-           }
     	} else {
             cout << "bad buffer size:" << amount << " expected: " << bufSize << endl;
         }
