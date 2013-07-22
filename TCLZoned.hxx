@@ -25,13 +25,14 @@ class Buffer {
 public:
     Buffer(int wd, int ht):
         wd(wd),
-        ht(ht){
+        ht(ht),
+        zero(0){
         size = wd*ht;
         buf = new uint32_t [size];
         
          
          for(int i = 0 ; i < size; i++)      
-             buf[i] = 0xbada5500;
+             buf[i] = 0;
                
     }
     
@@ -48,6 +49,7 @@ public:
         
     }
     
+    uint32_t *getZero() { return &zero;}
     
     uint32_t *getBuffer() { return pixelAt(0,0);}
     size_t getBufferSize() { return wd*ht*sizeof(uint32_t);}
@@ -64,7 +66,8 @@ public:
 private:
     int size;
     int wd, ht;
-    uint32_t *buf;   
+    uint32_t *buf;
+    uint32_t zero;
 };
 
 typedef struct {

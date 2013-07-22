@@ -33,13 +33,10 @@ int main(int argc, const char * argv[])
     Options opts(argc, argv);
     
     TCLZoned tcl(opts.buffersize.x, opts.buffersize.y, opts.leds);
-   tcl.addZones(opts.zones);
+    tcl.addZones(opts.zones);
     tcl.addOmissions(opts.omissions);
     UDPListener udp(opts.port);
-
-    
-    
-    
+   
     
     opts.dump();
     
